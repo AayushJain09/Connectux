@@ -1,61 +1,66 @@
-import { currentUser } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
+import { currentUser } from "@clerk/nextjs";
 
+import Comment from "@/components/forms/Comment";
 import ThreadCard from "@/components/cards/ThreadCard";
-import Pagination from "@/components/shared/Pagination";
 
-import { fetchPosts } from "@/lib/actions/thread.actions";
 import { fetchUser } from "@/lib/actions/user.actions";
+import { fetchThreadById } from "@/lib/actions/thread.actions";
 
-async function Home({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) {
+export const revalidate = 0;
+
+async function page({ params }: { params: { id: string } }) {
+  if (!params.id) return null;
+
   const user = await currentUser();
   if (!user) return null;
 
   const userInfo = await fetchUser(user.id);
   if (!userInfo?.onboarded) redirect("/onboarding");
 
-  const result = await fetchPosts(
-    searchParams.page ? +searchParams.page : 1,
-    30
-  );
+  const thread = await fetchThreadById(params.id);
 
   return (
-    <>
-      <h1 className='head-text text-left'>Home</h1>
+    <section className='relative'>
+      <div>
+        <ThreadCard
+          id={thread._id}
+          currentUserId={user.id}
+          parentId={thread.parentId}
+          content={thread.text}
+          author={thread.author}
+          community={thread.community}
+          createdAt={thread.createdAt}
+          comments={thread.children}
+        />
+      </div>
 
-      <section className='mt-9 flex flex-col gap-10'>
-        {result.posts.length === 0 ? (
-          <p className='no-result'>No threads found</p>
-        ) : (
-          <>
-            {result.posts.map((post) => (
-              <ThreadCard
-                key={post._id}
-                id={post._id}
-                currentUserId={user.id}
-                parentId={post.parentId}
-                content={post.text}
-                author={post.author}
-                community={post.community}
-                createdAt={post.createdAt}
-                comments={post.children}
-              />
-            ))}
-          </>
-        )}
-      </section>
+      <div className='mt-7'>
+        <Comment
+          threadId={params.id}
+          currentUserImg={user.imageUrl}
+          currentUserId={JSON.stringify(userInfo._id)}
+        />
+      </div>
 
-      <Pagination
-        path='/'
-        pageNumber={searchParams?.page ? +searchParams.page : 1}
-        isNext={result.isNext}
-      />
-    </>
+      <div className='mt-10'>
+        {thread.children.map((childItem: any) => (
+          <ThreadCard
+            key={childItem._id}
+            id={childItem._id}
+            currentUserId={user.id}
+            parentId={childItem.parentId}
+            content={childItem.text}
+            author={childItem.author}
+            community={childItem.community}
+            createdAt={childItem.createdAt}
+            comments={childItem.children}
+            isComment
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 
-export default Home;
+export default page;

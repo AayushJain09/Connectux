@@ -1,62 +1,66 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@clerk/nextjs";
 
-import UserCard from "@/components/cards/UserCard";
-import Searchbar from "@/components/shared/Searchbar";
-import Pagination from "@/components/shared/Pagination";
+import Comment from "@/components/forms/Comment";
+import ThreadCard from "@/components/cards/ThreadCard";
 
-import { fetchUser, fetchUsers } from "@/lib/actions/user.actions";
+import { fetchUser } from "@/lib/actions/user.actions";
+import { fetchThreadById } from "@/lib/actions/thread.actions";
 
-async function Page({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) {
+export const revalidate = 0;
+
+async function page({ params }: { params: { id: string } }) {
+  if (!params.id) return null;
+
   const user = await currentUser();
   if (!user) return null;
 
   const userInfo = await fetchUser(user.id);
   if (!userInfo?.onboarded) redirect("/onboarding");
 
-  const result = await fetchUsers({
-    userId: user.id,
-    searchString: searchParams.q,
-    pageNumber: searchParams?.page ? +searchParams.page : 1,
-    pageSize: 25,
-  });
+  const thread = await fetchThreadById(params.id);
 
   return (
-    <section>
-      <h1 className='head-text mb-10'>Search</h1>
-
-      <Searchbar routeType='search' />
-
-      <div className='mt-14 flex flex-col gap-9'>
-        {result.users.length === 0 ? (
-          <p className='no-result'>No Result</p>
-        ) : (
-          <>
-            {result.users.map((person) => (
-              <UserCard
-                key={person.id}
-                id={person.id}
-                name={person.name}
-                username={person.username}
-                imgUrl={person.image}
-                personType='User'
-              />
-            ))}
-          </>
-        )}
+    <section className='relative'>
+      <div>
+        <ThreadCard
+          id={thread._id}
+          currentUserId={user.id}
+          parentId={thread.parentId}
+          content={thread.text}
+          author={thread.author}
+          community={thread.community}
+          createdAt={thread.createdAt}
+          comments={thread.children}
+        />
       </div>
 
-      <Pagination
-        path='search'
-        pageNumber={searchParams?.page ? +searchParams.page : 1}
-        isNext={result.isNext}
-      />
+      <div className='mt-7'>
+        <Comment
+          threadId={params.id}
+          currentUserImg={user.imageUrl}
+          currentUserId={JSON.stringify(userInfo._id)}
+        />
+      </div>
+
+      <div className='mt-10'>
+        {thread.children.map((childItem: any) => (
+          <ThreadCard
+            key={childItem._id}
+            id={childItem._id}
+            currentUserId={user.id}
+            parentId={childItem.parentId}
+            content={childItem.text}
+            author={childItem.author}
+            community={childItem.community}
+            createdAt={childItem.createdAt}
+            comments={childItem.children}
+            isComment
+          />
+        ))}
+      </div>
     </section>
   );
 }
 
-export default Page;
+export default page;
