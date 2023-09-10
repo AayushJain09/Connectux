@@ -1,66 +1,62 @@
-import ThreadCard from "@/components/cards/ThreadCard"
-import { fetchThreadById } from "@/lib/actions/thread.actions";
-import { fetchUser } from "@/lib/actions/user.actions";
-import { currentUser } from "@clerk/nextjs"
 import { redirect } from "next/navigation";
-import Comment from "@/components/forms/Comment";
+import { currentUser } from "@clerk/nextjs";
 
-const Page = async ({ params }: { params: { id: string } }) => {
+import UserCard from "@/components/cards/UserCard";
+import Searchbar from "@/components/shared/Searchbar";
+import Pagination from "@/components/shared/Pagination";
 
-    if (!params.id) return null;
-    const user = await currentUser();
-    if (!user) return null;
+import { fetchUser, fetchUsers } from "@/lib/actions/user.actions";
 
-    const userInfo = await fetchUser(user.id);
-    if (!userInfo?.onboarded) redirect('/onboarding');
+async function Page({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | undefined };
+}) {
+  const user = await currentUser();
+  if (!user) return null;
 
-    const thread = await fetchThreadById(params.id)
+  const userInfo = await fetchUser(user.id);
+  if (!userInfo?.onboarded) redirect("/onboarding");
 
-    return (
-        < section className="relative">
-            <div>
-                <ThreadCard
-                    key={thread._id}
-                    id={thread._id}
-                    currentUserId={user?.id || ''}
-                    parentId={thread.parentId}
-                    content={thread.text}
-                    author={thread.author}
-                    community={thread.community}
-                    createdAt={thread.createdAt}
-                    comments={thread.children}
-                />
-            </div>
+  const result = await fetchUsers({
+    userId: user.id,
+    searchString: searchParams.q,
+    pageNumber: searchParams?.page ? +searchParams.page : 1,
+    pageSize: 25,
+  });
 
-            {/* //TODO: Add comment form */}
-            <div className="mt-7 ">
-                <Comment 
-                    threadId={thread.id}
-                    currentUserImg = {userInfo.image}
-                    currentUserId = {JSON.stringify(userInfo._id)}
-                />
-            </div>
-            {/* //TODO: Add comment list */}
-            <div className="mt-10">
-                {thread.children.map((children : any) => (
-                    <ThreadCard
-                        key={children._id}
-                        id={children._id}
-                        currentUserId={user?.id || ''}
-                        parentId={children.parentId}
-                        content={children.text}
-                        author={children.author}
-                        community={children.community}
-                        createdAt={children.createdAt}
-                        comments={children.children}
-                        isComment={true}
-                    />
-                ))}
-            </div>
+  return (
+    <section>
+      <h1 className='head-text mb-10'>Search</h1>
 
-        </section>
-    )
+      <Searchbar routeType='search' />
 
+      <div className='mt-14 flex flex-col gap-9'>
+        {result.users.length === 0 ? (
+          <p className='no-result'>No Result</p>
+        ) : (
+          <>
+            {result.users.map((person) => (
+              <UserCard
+                key={person.id}
+                id={person.id}
+                name={person.name}
+                username={person.username}
+                imgUrl={person.image}
+                personType='User'
+              />
+            ))}
+          </>
+        )}
+      </div>
+
+      <Pagination
+        path='search'
+        pageNumber={searchParams?.page ? +searchParams.page : 1}
+        isNext={result.isNext}
+      />
+    </section>
+  );
 }
 
-export default Page
+export default Page;

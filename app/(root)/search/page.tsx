@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 import { profileTabs } from "@/constants";
 import ThreadsTab from "@/components/shared/ThreadsTab";
-import UsersCard from "@/components/cards/UsersCard";
+import UserCard from "@/components/cards/UserCard";
 
 
 async function Page () {
@@ -37,7 +37,7 @@ async function Page () {
                 ) : (
                     <>
                     {result.users.map((person) => (
-                        <UsersCard 
+                        <UserCard 
                             key={person.id}
                             id={person.id}
                             name={person.name}

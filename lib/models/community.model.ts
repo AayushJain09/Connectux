@@ -16,7 +16,7 @@ const communitySchema = new mongoose.Schema({
   },
   image: String,
   bio: String,
-  createdBy:{
+  createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
   },
@@ -28,12 +28,13 @@ const communitySchema = new mongoose.Schema({
   ],
   members: [
     {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-    }
-  ]
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  ],
 });
 
-const Community = mongoose.models.Community || mongoose.model("Community", communitySchema);
+const Community =
+  mongoose.models.Community || mongoose.model("Community", communitySchema);
 
-export default User;
+export default Community;
